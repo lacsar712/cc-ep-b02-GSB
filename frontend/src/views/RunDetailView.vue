@@ -30,13 +30,16 @@
           <div>{{ run.started_by }} · {{ formatTime(run.started_at) }}</div>
         </div>
         <div>
-          <div class="muted">finished_at</div>
+          <div class="muted">{{ run.status === 'aborted' ? '中止时间 (finished_at)' : 'finished_at' }}</div>
           <div>{{ run.finished_at ? formatTime(run.finished_at) : '—' }}</div>
         </div>
       </div>
       <p v-if="run.description" style="margin-top: 12px">{{ run.description }}</p>
       <p v-if="run.result_summary"><strong>结果：</strong>{{ run.result_summary }}</p>
-      <p v-if="run.abort_reason"><strong>中止原因：</strong>{{ run.abort_reason }}</p>
+      <p v-if="run.abort_reason">
+        <strong>中止原因：</strong>{{ run.abort_reason }}
+        <span class="muted" style="margin-left: 8px">@ {{ formatTime(run.finished_at) }}</span>
+      </p>
     </div>
 
     <div class="grid-2" style="margin-bottom: 16px">

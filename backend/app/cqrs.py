@@ -282,6 +282,12 @@ def abort_run(
     reason: str,
     expected_version: int,
 ) -> RunProjection:
+    reason = (reason or "").strip()
+    if not reason:
+        raise DomainError("中止原因不能为空或纯空白", status_code=422)
+    if len(reason) > 2000:
+        raise DomainError("中止原因长度不能超过 2000 字", status_code=422)
+
     proj = _get_projection(db, run_id)
     _require_running(proj)
     _check_expected_version(proj, expected_version)

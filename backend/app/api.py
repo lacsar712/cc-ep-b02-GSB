@@ -1,7 +1,7 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.auth import authenticate_user, create_access_token, get_current_user, require_researcher
@@ -59,6 +59,7 @@ def login(body: LoginRequest):
 def get_runs(
     project: str | None = Query(default=None),
     status: str | None = Query(default=None),
+    reason_kw: str | None = Query(default=None),
     db: Session = Depends(get_db),
     _user: dict = Depends(get_current_user),
 ):
@@ -67,6 +68,14 @@ def get_runs(
         stmt = stmt.where(RunProjection.project == project)
     if status:
         stmt = stmt.where(RunProjection.status == status)
+    if reason_kw and reason_kw.strip():
+        # Case-insensitive substring match on the persisted abort reason.
+        # Escape LIKE wildcards so the keyword is treated literally.
+        kw = reason_kw.strip().lower()
+        escaped = kw.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        stmt = stmt.where(
+            func.lower(RunProjection.abort_reason).like(f"%{escaped}%", escape="\\")
+        )
     return list(db.scalars(stmt).all())
 
 

@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class StartRunCommand(BaseModel):
@@ -37,6 +37,14 @@ class CompleteRunCommand(BaseModel):
 class AbortRunCommand(BaseModel):
     reason: str = Field(min_length=1, max_length=2000)
     expected_version: int = Field(ge=1)
+
+    @field_validator("reason")
+    @classmethod
+    def _reject_blank_reason(cls, v: str) -> str:
+        stripped = v.strip()
+        if not stripped:
+            raise ValueError("中止原因不能为空或纯空白")
+        return stripped
 
 
 class LoginRequest(BaseModel):
