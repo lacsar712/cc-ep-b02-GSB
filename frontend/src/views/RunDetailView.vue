@@ -36,7 +36,12 @@
       </div>
       <p v-if="run.description" style="margin-top: 12px">{{ run.description }}</p>
       <p v-if="run.result_summary"><strong>结果：</strong>{{ run.result_summary }}</p>
-      <p v-if="run.abort_reason"><strong>中止原因：</strong>{{ run.abort_reason }}</p>
+      <div v-if="run.abort_reason" class="abort-box">
+        <strong>中止原因：</strong>{{ run.abort_reason }}
+        <div class="muted" style="margin-top: 4px">
+          中止时间：{{ run.finished_at ? formatTime(run.finished_at) : '—' }}
+        </div>
+      </div>
     </div>
 
     <div class="grid-2" style="margin-bottom: 16px">
@@ -92,7 +97,7 @@
         <n-button type="warning" :loading="busy" @click="doAbort">AbortRun</n-button>
       </div>
     </div>
-    <div v-else class="card muted">审计员只读：可查看事件与血缘，不可发送命令。</div>
+    <div v-else class="card muted">{{ readonlyHint }}</div>
   </div>
 </template>
 
@@ -126,6 +131,14 @@ const artifact = reactive({
 })
 
 const canWrite = computed(() => auth.role === 'researcher' && run.value?.status === 'running')
+const readonlyHint = computed(() => {
+  if (auth.role !== 'researcher') {
+    return '审计员只读：可查看中止原因、事件与血缘，没有中止等命令按钮。'
+  }
+  if (run.value?.status === 'aborted') return '该 Run 已中止，不能再发送命令。'
+  if (run.value?.status === 'completed') return '该 Run 已结束，不能再中止。'
+  return ''
+})
 const statusLabel = computed(() => {
   const m = { running: '进行中', completed: '已完成', aborted: '已中止' }
   return m[run.value?.status] || run.value?.status
@@ -159,12 +172,13 @@ async function load() {
   run.value = await getRun(route.params.id)
 }
 
-async function withBusy(fn) {
+async function withBusy(fn, onSuccess) {
   busy.value = true
   try {
     await fn()
     message.success('命令已接受')
     await load()
+    if (onSuccess) onSuccess()
   } catch (e) {
     message.error(e.message || '命令失败')
   } finally {
@@ -211,15 +225,20 @@ function doComplete() {
 }
 
 function doAbort() {
-  if (!abortReason.value.trim()) {
+  const reason = abortReason.value.trim()
+  if (!reason) {
     message.warning('请填写中止原因')
     return
   }
-  return withBusy(() =>
-    abortRun(run.value.id, {
-      reason: abortReason.value,
-      expected_version: run.value.version,
-    }),
+  return withBusy(
+    () =>
+      abortRun(run.value.id, {
+        reason,
+        expected_version: run.value.version,
+      }),
+    () => {
+      abortReason.value = ''
+    },
   )
 }
 

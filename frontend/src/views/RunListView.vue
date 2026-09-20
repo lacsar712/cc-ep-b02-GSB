@@ -24,7 +24,15 @@
           />
         </n-form-item>
       </div>
-      <n-button style="margin-top: 8px" @click="load">筛选</n-button>
+      <n-form-item label="中止原因关键字" :show-feedback="false" style="margin-top: 8px">
+        <n-input
+          v-model:value="abortReason"
+          clearable
+          placeholder="选择“已中止”后，按原因里的词在服务端收窄"
+          @keyup.enter="load"
+        />
+      </n-form-item>
+      <n-button style="margin-top: 8px" type="primary" @click="load">筛选</n-button>
     </div>
 
     <div class="card">
@@ -47,6 +55,7 @@ const rows = ref([])
 const loading = ref(false)
 const project = ref('')
 const status = ref(null)
+const abortReason = ref('')
 
 const statusOptions = [
   { label: '进行中', value: 'running' },
@@ -80,6 +89,23 @@ const columns = [
     },
   },
   {
+    title: '中止时间',
+    key: 'finished_at',
+    render(row) {
+      return row.status === 'aborted' && row.finished_at
+        ? new Date(row.finished_at).toLocaleString()
+        : '—'
+    },
+  },
+  {
+    title: '中止原因',
+    key: 'abort_reason',
+    ellipsis: { tooltip: true },
+    render(row) {
+      return row.abort_reason || '—'
+    },
+  },
+  {
     title: '操作',
     key: 'actions',
     render(row) {
@@ -102,6 +128,7 @@ async function load() {
     const params = {}
     if (project.value.trim()) params.project = project.value.trim()
     if (status.value) params.status = status.value
+    if (abortReason.value.trim()) params.abort_reason = abortReason.value.trim()
     rows.value = await listRuns(params)
   } catch (e) {
     message.error(e.message || '加载失败')

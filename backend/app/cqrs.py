@@ -286,6 +286,9 @@ def abort_run(
     _require_running(proj)
     _check_expected_version(proj, expected_version)
 
+    if not reason or not reason.strip():
+        raise DomainError("中止原因不能为空或纯空白", status_code=422)
+
     event = _append_event(
         db,
         aggregate_id=run_id,

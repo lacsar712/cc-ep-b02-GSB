@@ -59,6 +59,7 @@ def login(body: LoginRequest):
 def get_runs(
     project: str | None = Query(default=None),
     status: str | None = Query(default=None),
+    abort_reason: str | None = Query(default=None, description="按中止原因关键字模糊匹配"),
     db: Session = Depends(get_db),
     _user: dict = Depends(get_current_user),
 ):
@@ -67,6 +68,10 @@ def get_runs(
         stmt = stmt.where(RunProjection.project == project)
     if status:
         stmt = stmt.where(RunProjection.status == status)
+    if abort_reason and abort_reason.strip():
+        # 服务端过滤：转义 LIKE 通配符，避免用户输入的 % _ 被当作模式
+        keyword = abort_reason.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        stmt = stmt.where(RunProjection.abort_reason.ilike(f"%{keyword}%", escape="\\"))
     return list(db.scalars(stmt).all())
 
 

@@ -95,3 +95,12 @@ a {
   width: 100%;
   height: 180px;
 }
+
+.abort-box {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid #f0d9b5;
+  border-left: 4px solid #d97706;
+  border-radius: 6px;
+  background: #fdf8f0;
+}
